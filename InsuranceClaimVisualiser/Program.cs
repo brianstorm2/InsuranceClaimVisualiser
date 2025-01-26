@@ -28,6 +28,7 @@ namespace LossRatioCalculator
 
                     //run ExtractClaimsByGeographyMethod
                     ExtractClaimsByGeography(connection);
+                    CalcLossRatioByGeography(connection);
 
                     //close connection after program is finished
                     connection.Close();
@@ -49,7 +50,12 @@ namespace LossRatioCalculator
         public static void ExtractClaimsByGeography(SqlConnection connection)
         {
             //query to group number of claims by geography
-            SqlCommand command = new SqlCommand("SELECT SUM(c.ClaimAmount) AS TotalClaims, r.RegionName FROM Claims c LEFT JOIN Policies p ON c.PolicyID = p.PolicyID LEFT JOIN Regions r ON r.RegionID = p.RegionID GROUP BY r.RegionName", connection);
+            SqlCommand command = new SqlCommand(@"SELECT SUM(c.ClaimAmount) AS TotalClaims, r.RegionName 
+                                                FROM Claims c 
+                                                LEFT JOIN Policies p 
+                                                ON c.PolicyID = p.PolicyID 
+                                                LEFT JOIN Regions r ON r.RegionID = p.RegionID GROUP BY r.RegionName", connection);
+
             Dictionary<string, decimal> claimsByRegion = new Dictionary<string, decimal>();
             using (SqlDataReader reader = command.ExecuteReader())
             {
@@ -60,7 +66,6 @@ namespace LossRatioCalculator
                     string regionName = reader.GetString(1);
 
                     //store results by geography claim in dictionary
-                    //move to seperate function
                     claimsByRegion.Add(regionName, totalClaims);
                     /*DateTime ClaimDate = reader.GetDateTime(3);
                     Console.WriteLine($"ClaimID: {ClaimID}, PolicyID: {PolicyID}, Claim Amount: {ClaimAmount}, Claim Date: {ClaimDate.ToShortDateString()}");*/
@@ -75,7 +80,14 @@ namespace LossRatioCalculator
         //query calculating loss ratio by region
         public static void CalcLossRatioByGeography(SqlConnection connection)
         {
-            SqlCommand command = new SqlCommand("(SELECT SUM(c.ClaimAmount)/SUM(p.PremiumCollected))*100 AS LossRatio, r.RegionName FROM Claims c LEFT JOIN Policies p ON c.PolicyID = p.PolicyID LEFT JOIN Regions r ON r.RegionID = p.RegionID GROUP BY r.RegionName");
+            //query to calculate loss ratio by region
+            SqlCommand command = new SqlCommand(@"SELECT (SUM(c.ClaimAmount)/SUM(p.PremiumCollected))*100 AS LossRatio, r.RegionName 
+                                                FROM Claims c 
+                                                LEFT JOIN Policies p 
+                                                ON c.PolicyID = p.PolicyID 
+                                                LEFT JOIN Regions r 
+                                                ON r.RegionID = p.RegionID GROUP BY r.RegionName", connection);
+
             Dictionary<string, decimal> lossRatioByRegion = new Dictionary<string, decimal>();
 
             using (SqlDataReader reader = command.ExecuteReader())
@@ -84,7 +96,14 @@ namespace LossRatioCalculator
                 {
                     decimal lossRatio = reader.GetDecimal(0);
                     string regionName = reader.GetString(1);
+
+                    //store lossratio and region in dictionary
+                    lossRatioByRegion.Add(regionName, lossRatio);
                 }
+
+                //Generate Bar Chart
+                DataGraphProducer.DataVisualiser lossRatioByGeography = new DataGraphProducer.DataVisualiser();
+                lossRatioByGeography.GenerateLossRatioBarChartByGeography(lossRatioByRegion);
             }
         }
     }

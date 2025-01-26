@@ -16,7 +16,7 @@ namespace DataGraphProducer
             //initialise new bar chart
             var plotModel = new PlotModel { Title = "Claims By Geography" };
 
-            //establish data points, labelled with geographical area
+            //establish data points, labelled with geographical area {0} = first parameter
             var barSeries = new BarSeries { LabelPlacement = LabelPlacement.Inside, LabelFormatString = "{0}" };
 
             //foreach loop of dictionary contents entry = key, value pair
@@ -49,7 +49,46 @@ namespace DataGraphProducer
                 form.ShowDialog();
             }
         }
-        //add lossratio visualiser by geography
+
+        //loss ratio visualiser by geography
+        public void GenerateLossRatioBarChartByGeography(Dictionary<string, decimal> lossRatioGeographyData)
+        {
+            //initialise new bar chart
+            var plotModel = new PlotModel { Title = "Loss Ratio By Geography" };
+
+            //establish data points, labelled with geographical area
+            var barSeries = new BarSeries { LabelPlacement = LabelPlacement.Inside, LabelFormatString = "{0}" };
+
+            //foreach loop of dictionary contents entry = key, value pair
+            foreach (var entry in lossRatioGeographyData)
+            {
+                //add bar for each value
+                barSeries.Items.Add(new BarItem { Value = (double)entry.Value });
+            }
+            //adds bars to plotmodel
+            plotModel.Series.Add(barSeries);
+
+            //add labels to axis
+            var categoryAxis = new CategoryAxis { Position = AxisPosition.Left };
+            foreach (var entry in lossRatioGeographyData)
+            {
+                categoryAxis.Labels.Add(entry.Key);
+            }
+
+            //add labels to plotmodel
+            plotModel.Axes.Add(categoryAxis);
+            plotModel.Axes.Add(new LinearAxis { Position = AxisPosition.Bottom, Minimum = 0, Maximum = 100 }); // Max value on axis max % = 100
+
+            //creates view of bar chart
+            using (var plotView = new PlotView { Model = plotModel })
+            {
+                var form = new Form { Text = "Bar Chart", ClientSize = new System.Drawing.Size(800, 600) };
+                plotView.Dock = DockStyle.Fill;
+                form.Controls.Add(plotView);
+                form.ShowDialog();
+            }
+        }
+
         //add claim visualiser by policy
         //add loss ratio visualiser by policy
         //add claim visualiser by month
