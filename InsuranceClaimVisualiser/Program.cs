@@ -1,5 +1,9 @@
 ﻿using System;
+using System.Drawing;
+using System.Security.Claims;
+using System.Windows.Forms;
 using Microsoft.Data.SqlClient;
+using static System.ComponentModel.Design.ObjectSelectorEditor;
 
 namespace LossRatioCalculator
 {
@@ -11,17 +15,33 @@ namespace LossRatioCalculator
             string username = Environment.GetEnvironmentVariable("SQL_SERVER_USERNAME");
             string password = Environment.GetEnvironmentVariable("SQL_SERVER_PASSWORD");
 
+            string serverAndPort = "localhost,1433";
+
             //connect to local sql server db PolicyClaimsTrackerDB
-            string connectToLocalSqlServer = $"Server=localhost,1433;Database=PolicyClaimsTrackerDB; User Id={username}; Password={password};TrustServerCertificate=True";
+            string connectToLocalSqlServer = $"Server={serverAndPort};Database=PolicyClaimsTrackerDB; User Id={username}; Password={password};TrustServerCertificate=True";
             using (SqlConnection connection = new SqlConnection(connectToLocalSqlServer))
             {
-                connection.Open();
-                Console.WriteLine("Connection Opened");
+                try
+                {
+                    connection.Open();
+                    Console.WriteLine("Connection Opened");
 
-                //run ExtractClaimsByGeographyMethod
-                ExtractClaimsByGeography(connection);
+                    //run ExtractClaimsByGeographyMethod
+                    ExtractClaimsByGeography(connection);
 
-                connection.Close();
+                    //close connection after program is finished
+                    connection.Close();
+                }
+                //SQL exception errors
+                catch (SqlException sqlEx)
+                {
+                    Console.WriteLine($"SQL Connection Error. {sqlEx.Message} Please check your username and password. Closing Program.");
+                }
+                //Any other errors
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Unexpected Error. {ex.Message} An unexpected error occured");
+                }
             }
 
         }
@@ -45,13 +65,26 @@ namespace LossRatioCalculator
                     /*DateTime ClaimDate = reader.GetDateTime(3);
                     Console.WriteLine($"ClaimID: {ClaimID}, PolicyID: {PolicyID}, Claim Amount: {ClaimAmount}, Claim Date: {ClaimDate.ToShortDateString()}");*/
                 }
-                foreach (KeyValuePair<string, decimal> kvp in claimsByRegion)
-                {
-                    Console.WriteLine($"Region {kvp.Key}, Total Claims: {kvp.Value}");
-                }
+
                 //Generate Bar Chart
                 DataGraphProducer.DataVisualiser visualiseByGeography = new DataGraphProducer.DataVisualiser();
                 visualiseByGeography.GenerateClaimsBarChartByGeography(claimsByRegion);
+            }
+        }
+
+        //query calculating loss ratio by region
+        public static void CalcLossRatioByGeography(SqlConnection connection)
+        {
+            SqlCommand command = new SqlCommand("(SELECT SUM(c.ClaimAmount)/SUM(p.PremiumCollected))*100 AS LossRatio, r.RegionName FROM Claims c LEFT JOIN Policies p ON c.PolicyID = p.PolicyID LEFT JOIN Regions r ON r.RegionID = p.RegionID GROUP BY r.RegionName");
+            Dictionary<string, decimal> lossRatioByRegion = new Dictionary<string, decimal>();
+
+            using (SqlDataReader reader = command.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    decimal lossRatio = reader.GetDecimal(0);
+                    string regionName = reader.GetString(1);
+                }
             }
         }
     }
