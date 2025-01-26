@@ -29,6 +29,7 @@ namespace LossRatioCalculator
                     //run ExtractClaimsByGeographyMethod
                     ExtractClaimsByGeography(connection);
                     CalcLossRatioByGeography(connection);
+                    CalcClaimsByMonth(connection);
 
                     //close connection after program is finished
                     connection.Close();
@@ -104,6 +105,36 @@ namespace LossRatioCalculator
                 //Generate Bar Chart
                 DataGraphProducer.DataVisualiser lossRatioByGeography = new DataGraphProducer.DataVisualiser();
                 lossRatioByGeography.GenerateLossRatioBarChartByGeography(lossRatioByRegion);
+            }
+        }
+
+        public static void CalcClaimsByMonth(SqlConnection connection)
+        {
+
+            //query to calculate money spent on claims per month
+            SqlCommand command = new SqlCommand(@"SELECT FORMAT(ClaimDate, 'yyyy-MM') AS ClaimMonth,
+                                                SUM(ClaimAmount) AS MonthlyClaims
+                                                FROM CLAIMS
+                                                GROUP BY FORMAT(ClaimDate, 'yyyy-MM')
+                                                ORDER BY ClaimMonth", connection);
+
+            Dictionary<string, decimal> claimsPerMonth = new Dictionary<string, decimal>();
+
+            using (SqlDataReader reader = command.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    string claimMonth = reader.GetString(0);
+                    decimal monthlyClaims = reader.GetDecimal(1);
+                    
+
+                    //store monthly claim sum and month
+                    claimsPerMonth.Add(claimMonth, monthlyClaims);
+                }
+
+                //Generate Line Graph
+                DataGraphProducer.DataVisualiser claimsMonthly = new DataGraphProducer.DataVisualiser();
+                claimsMonthly.GenerateMonthlyClaimsLineGraph(claimsPerMonth);
             }
         }
     }

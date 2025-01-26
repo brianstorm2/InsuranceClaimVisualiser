@@ -38,7 +38,7 @@ namespace DataGraphProducer
 
             //add labels to plotmodel
             plotModel.Axes.Add(categoryAxis);
-            plotModel.Axes.Add(new LinearAxis { Position = AxisPosition.Bottom, Minimum = 0, Maximum = 2000 }); // Max value on axis
+            plotModel.Axes.Add(new LinearAxis { Position = AxisPosition.Bottom, Minimum = 0, Maximum = 5000 }); // Max value on axis
 
             //creates view of bar chart
             using (var plotView = new PlotView { Model = plotModel })
@@ -89,10 +89,69 @@ namespace DataGraphProducer
             }
         }
 
-        //add claim visualiser by policy
-        //add loss ratio visualiser by policy
-        //add claim visualiser by month
-        //add loss ratio visualiser by month
+        public void GenerateMonthlyClaimsLineGraph(Dictionary<string, decimal> monthlyClaimsData)
+        {
+            //initialise new line graph
+            var plotModel = new PlotModel { Title = "Claims Per Month" };
+
+            //edit appearance of data types
+            var lineSeries = new LineSeries
+            {
+                MarkerType = MarkerType.Circle,
+                MarkerSize = 4,
+                MarkerStroke = OxyColors.White
+            };
+
+            int index = 0; //x-axis value
+            foreach (var entry in monthlyClaimsData)
+            {
+                lineSeries.Points.Add(new DataPoint(index, (double)entry.Value));
+                index++;
+            }
+
+            plotModel.Series.Add(lineSeries);
+
+            //establish x-axis 
+            var xAxis = new CategoryAxis
+            {
+                Position = AxisPosition.Bottom,
+                Title = "Month",
+                MajorGridlineStyle = LineStyle.Solid,
+                MinorGridlineStyle = LineStyle.Dot
+            };
+
+            // Add month labels to X-axis
+            foreach (var entry in monthlyClaimsData)
+            {
+                xAxis.Labels.Add(entry.Key);
+            }
+
+            //establish y-axis
+            var yAxis = new LinearAxis
+            {
+                Position = AxisPosition.Left,
+                Minimum = 0,
+                Maximum = 5000,
+                Title = "Amount Claimed",
+                MajorGridlineStyle = LineStyle.Solid,
+                MinorGridlineStyle = LineStyle.Dot
+            };
+
+            //add axes points to graph
+            plotModel.Axes.Add(xAxis);
+            plotModel.Axes.Add(yAxis);
+
+            var form = new Form
+            {
+                Text = "Monthly Claims Line Graph",
+                ClientSize = new System.Drawing.Size(800, 600)
+            };
+
+            //appearance
+            var plotView = new PlotView { Model = plotModel, Dock = DockStyle.Fill };
+            form.Controls.Add(plotView);
+            form.ShowDialog();
+        }
     }
 }
 
